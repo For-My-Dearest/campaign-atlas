@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String?
+  email         String   @unique(map: "user_email_unique")
+  password      String
+  role          String   @default("PLAYER")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+
+  notes      Note[]
+  characters Character[] // for PC owner lookup
+  noteFolders NoteFolder[] @relation("PlayerNoteFolders")
+  placements NotePlacement[]
+
+  @@map("users")
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  name        String   @default("My D&D Campaign")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users      User[]
+  characters Character[]
+  locations  Location[]
+  maps       Map[]
+  factions   Faction[]
+  notes      Note[]
+  noteFolders NoteFolder[]
+
+  @@map("campaigns")
+}
+
+model Map {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  imageUrl    String?  // relative path inside public/
+  widthPx     Int
+  heightPx    Int
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  campaignId  String
+  parent      Map?      @relation("MapHierarchy", fields: [parentId], references: [id])
+  parentId    String?
+  children    Map[]     @relation("MapHierarchy")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  markers MapMarker[]
+
+  @@map("maps")
+}
+
+model MapMarker {
+  id          String   @id @default(uuid())
+  type        String   // character | location | faction
+  label       String?
+  xNormalized Float    // 0.0..1.0
+  yNormalized Float    // 0.0..1.0
+  map         Map      @relation(fields: [mapId], references: [id])
+  mapId       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  character   Character? @relation(fields: [characterId], references: [id])
+  characterId String?
+  location    Location?  @relation(fields: [locationId], references: [id])
+  locationId  String?
+
+  @@map("map_markers")
+}
+
+model Character {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  portraitUrl String?
+  role        String?
+  publicInfo  String?
+  gmOnly      String?
+  tags        String?   // comma-separated (SQLite: no arrays)
+  aliases     String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+
+  location   Location? @relation(fields: [locationId], references: [id])
+  locationId String?
+
+  owner      User?     @relation(fields: [ownerId], references: [id])
+  ownerId    String?
+
+  faction    Faction?  @relation(fields: [factionId], references: [id])
+  factionId  String?
+
+  markers    MapMarker[]
+  noteLinks  NoteCharacterLink[]
+
+  @@map("characters")
+}
+
+model Location {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  publicInfo  String?
+  gmOnly      String?
+  tags        String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+
+  parent     Location? @relation("LocationHierarchy", fields: [parentId], references: [id])
+  parentId   String?
+  children   Location[] @relation("LocationHierarchy")
+
+  markers    MapMarker[]
+  characters Character[]
+  factions   Faction[]
+  locationLinks NoteLocationLink[]
+
+  @@map("locations")
+}
+
+model Faction {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  logoUrl     String?
+  leader      String?
+  allies      String?
+  enemies     String?
+  publicInfo  String?
+  gmOnly      String?
+  tags        String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+
+  characters Character[]
+  locations  Location[]
+  noteLinks  NoteFactionLink[]
+
+  @@map("factions")
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  title       String
+  body        String
+  visibility  String   @default("PRIVATE") // PRIVATE | SHARED | GM_SHARED
+  tags        String?
+  rtl         Boolean  @default(false) // Persian/Arabic content renders right-to-left
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation(fields: [authorId], references: [id])
+  authorId    String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  campaignId  String
+
+  folder      NoteFolder? @relation(fields: [folderId], references: [id])
+  folderId    String?
+
+  characters  NoteCharacterLink[]
+  locations   NoteLocationLink[]
+  factions    NoteFactionLink[]
+  placements  NotePlacement[]
+
+  @@map("notes")
+}
+
+model NoteFolder {
+  id          String   @id @default(uuid())
+  name        String
+  isPublic    Boolean  @default(false) // public = visible to players (e.g. "Public info")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id])
+  campaignId String
+
+  // Owner (null = campaign-level/GM-managed; set for player-created folders)
+  owner      User?     @relation("PlayerNoteFolders", fields: [ownerId], references: [id])
+  ownerId    String?
+
+  parent      NoteFolder? @relation("NoteFolderHierarchy", fields: [parentId], references: [id])
+  parentId    String?
+  children    NoteFolder[] @relation("NoteFolderHierarchy")
+
+  notes      Note[]
+  placements NotePlacement[]
+
+  @@map("note_folders")
+}
+
+model NoteCharacterLink {
+  id          String    @id @default(uuid())
+  note        Note      @relation(fields: [noteId], references: [id])
+  noteId      String
+  character   Character @relation(fields: [characterId], references: [id])
+  characterId String
+  @@unique([noteId, characterId])
+  @@map("note_character_links")
+}
+
+model NotePlacement {
+  id       String @id @default(uuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String
+  note     Note   @relation(fields: [noteId], references: [id])
+  noteId   String
+  folder   NoteFolder @relation(fields: [folderId], references: [id])
+  folderId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, noteId])
+  @@map("note_placements")
+}
+
+model NoteLocationLink {
+  id          String   @id @default(uuid())
+  note        Note     @relation(fields: [noteId], references: [id])
+  noteId      String
+  location    Location @relation(fields: [locationId], references: [id])
+  locationId  String
+  @@unique([noteId, locationId])
+  @@map("note_location_links")
+}
+
+model NoteFactionLink {
+  id          String   @id @default(uuid())
+  note        Note     @relation(fields: [noteId], references: [id])
+  noteId      String
+  faction     Faction  @relation(fields: [factionId], references: [id])
+  factionId   String
+  @@unique([noteId, factionId])
+  @@map("note_faction_links")
+}
