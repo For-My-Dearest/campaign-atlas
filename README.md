@@ -7,6 +7,7 @@ Interactive D&D campaign map hub built with Next.js 16 + SQLite (Prisma) + Tailw
 ```bash
 git clone <your-repo-url>
 cd campaign-atlas
+npm install
 npm run dev
 # Open http://localhost:3000
 ```
