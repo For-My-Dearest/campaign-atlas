@@ -52,3 +52,61 @@ This starts the app. You'll see something like:
 Now open your browser and go to: **http://localhost:3000**
 
 That's it. The campaign atlas is running.
+
+## Getting Updates From the GM (important!)
+
+When the GM publishes new world content, you need to **merge** it into your local database — **not** just `git pull`. This keeps your own notes safe.
+
+**The rule:** Never pull with the app running, and always backup your database first.
+
+**The 4-step update flow:**
+
+1. **Stop the app** (press `Ctrl+C` in the terminal running it)
+
+2. **Backup your database:**
+
+   ```bash
+   cp dev.db dev.db.backup-before-pull
+   ```
+
+3. **Pull the new code:**
+
+   ```bash
+   git pull
+   ```
+
+   If you see a merge conflict about `dev.db`, don't panic — run:
+   ```bash
+   git checkout --theirs dev.db
+   ```
+   This keeps the GM's newer world database.
+
+4. **Merge the GM's world data into your local DB:**
+
+   ```bash
+   cp dev.db dev.db.gm
+   node prisma/merge-pull.mjs
+   ```
+
+   The script:
+   - Copies anything **new** from the GM's database into yours (maps, notes, characters, folders)
+   - **Skips anything you already have** — your personal notes and folder placements stay untouched
+   - Backs up your `dev.db` to `dev.db.backup` first
+
+5. **Start the app again:**
+
+   ```bash
+   npm run dev
+   ```
+
+**What the merge does NOT do:**
+- Doesn't overwrite your notes (if you and the GM both edited the same note, GM's version wins — rare but possible)
+- Doesn't touch your folders or folder placements
+- Doesn't touch your account info
+- Doesn't remove anything you deleted
+
+**Restore:** If anything ever looks wrong, restore your backup with:
+```bash
+cp dev.db.backup-before-pull dev.db
+```
+and delete `dev.db.backup` + `dev.db.gm` afterward.
