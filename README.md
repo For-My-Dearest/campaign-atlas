@@ -17,7 +17,7 @@ node -v
 ```
 You should see something like `v22.x.x`. If you see that, you're good. If not, restart your computer and try again.
 
-## Setup — 5 Commands
+## Setup
 
 Open a terminal and run these one at a time, waiting for each to finish:
 
@@ -38,12 +38,12 @@ This installs everything the app needs. Takes about 2-5 minutes the first time. 
 Run this to generate prisma:
 ```
 npx prisma generate
-
 ```
+This starts the app.
 ```bash
 npm run dev
 ```
-This starts the app. You'll see something like:
+ You'll see something like:
 ```
 ▲ Next.js 16.x.x
 - Local: http://localhost:3000
@@ -64,12 +64,14 @@ When the GM publishes new world content, you need to **merge** it into your loca
 1. **Stop the app** (press `Ctrl+C` in the terminal running it)
 
 2. **Backup your database:**
+   run PowerShell in the folder "campaign atlas". To do that, just click on the address bar, remove the address, and type PowerShell and enter.
+   The, run this:
 
    ```bash
    cp dev.db dev.db.backup-before-pull
    ```
 
-3. **Pull the new code:**
+4. **Pull the new code:**
 
    ```bash
    git pull
@@ -81,11 +83,15 @@ When the GM publishes new world content, you need to **merge** it into your loca
    ```
    This keeps the GM's newer world database.
 
-4. **Merge the GM's world data into your local DB:**
+5. **Merge the GM's world data into your local DB:**
 
+   Run in PowerShell, doesn't give an output in the PowerShell.
    ```bash
    cp dev.db dev.db.gm
-   node prisma/merge-pull.mjs
+   ```
+   Run this for the databases to merge.
+   ```
+   node prisma/merge-pull.mjs 
    ```
 
    The script:
@@ -93,7 +99,7 @@ When the GM publishes new world content, you need to **merge** it into your loca
    - **Skips anything you already have** — your personal notes and folder placements stay untouched
    - Backs up your `dev.db` to `dev.db.backup` first
 
-5. **Start the app again:**
+7. **Start the app again:**
 
    ```bash
    npm run dev
